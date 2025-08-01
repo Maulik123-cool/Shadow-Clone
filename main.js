@@ -11,10 +11,12 @@ const gravity = 0.5;
 const friction = 0.8;
 
 let player, clone, platforms = [], goal = {};
-let pastRuns = [[], [], []]; // One memory per level
+let pastRuns = [[], [], []];
 let currentLevel = 0;
 let gameRunning = false;
 let countdown = 3;
+let timeLeft = 30;
+let timerInterval = null;
 
 class Player {
   constructor(x, y, color) {
@@ -94,34 +96,36 @@ function loadLevel(n) {
   currentLevel = n;
   platforms = [];
 
-  // Basic levels - you can add more or edit these
   const levelData = [
+    // Level 1 – easier spacing
     [
       new Platform(0, 480, 800, 20),
-      new Platform(150, 400, 100, 20),
-      new Platform(300, 330, 100, 20),
-      new Platform(450, 270, 100, 20),
-      new Platform(600, 200, 100, 20),
+      new Platform(150, 420, 100, 20),
+      new Platform(300, 360, 100, 20),
+      new Platform(450, 300, 100, 20),
+      new Platform(600, 240, 100, 20),
     ],
+    // Level 2 – medium difficulty
     [
       new Platform(0, 480, 800, 20),
-      new Platform(200, 420, 100, 20),
-      new Platform(350, 360, 100, 20),
-      new Platform(500, 300, 100, 20),
-      new Platform(650, 240, 100, 20),
+      new Platform(200, 400, 100, 20),
+      new Platform(350, 340, 100, 20),
+      new Platform(500, 280, 100, 20),
+      new Platform(650, 220, 100, 20),
     ],
+    // Level 3 – hardest but still beatable
     [
       new Platform(0, 480, 800, 20),
-      new Platform(100, 420, 100, 20),
-      new Platform(250, 360, 100, 20),
-      new Platform(400, 300, 100, 20),
-      new Platform(550, 240, 100, 20),
-      new Platform(700, 180, 100, 20),
+      new Platform(100, 400, 100, 20),
+      new Platform(250, 320, 100, 20),
+      new Platform(400, 260, 100, 20),
+      new Platform(550, 200, 100, 20),
+      new Platform(700, 140, 100, 20),
     ]
   ];
 
   platforms = levelData[n];
-  goal = { x: 750, y: 180, w: 30, h: 100 };
+  goal = { x: 750, y: 120, w: 30, h: 100 };
 
   player = new Player(100, 100, 'cyan');
   clone = new Player(100, 100, 'rgba(255,0,0,0.5)');
@@ -131,6 +135,7 @@ function loadLevel(n) {
 
 function startLevel(n) {
   levelSelect.style.display = 'none';
+  clearInterval(timerInterval);
   loadLevel(n);
 }
 
@@ -144,12 +149,40 @@ function startCountdown() {
       setTimeout(() => {
         countdownDiv.textContent = "";
         gameRunning = true;
+        timeLeft = 30;
+        timerInterval = setInterval(() => {
+          timeLeft--;
+          if (timeLeft <= 0) {
+            endGame(false);
+          }
+        }, 1000);
       }, 500);
       clearInterval(interval);
     } else {
       countdownDiv.textContent = countdown;
     }
   }, 1000);
+}
+
+function endGame(success) {
+  gameRunning = false;
+  clearInterval(timerInterval);
+
+  if (success) {
+    if (
+      pastRuns[currentLevel].length === 0 ||
+      player.timer < pastRuns[currentLevel].length
+    ) {
+      pastRuns[currentLevel] = player.record.slice();
+      alert("🎉 Level Complete! Shadow updated.");
+    } else {
+      alert("Finished, but slower than your clone!");
+    }
+  } else {
+    alert("⏰ Time’s up! Try again.");
+  }
+
+  levelSelect.style.display = "block";
 }
 
 function gameLoop() {
@@ -171,24 +204,17 @@ function gameLoop() {
 
   player.draw();
 
-  // Finish
   if (
     player.x > goal.x &&
     player.y > goal.y &&
     player.y < goal.y + goal.h
   ) {
-    gameRunning = false;
-    if (
-      pastRuns[currentLevel].length === 0 ||
-      player.timer < pastRuns[currentLevel].length
-    ) {
-      pastRuns[currentLevel] = player.record.slice();
-      alert("🎉 Level Complete! Shadow updated.");
-    } else {
-      alert("Finished, but slower than your clone!");
-    }
-    levelSelect.style.display = "block";
+    endGame(true);
   }
+
+  ctx.fillStyle = 'white';
+  ctx.font = "16px sans-serif";
+  if (gameRunning) ctx.fillText("⏱️ Time Left: " + timeLeft + "s", 10, 20);
 
   requestAnimationFrame(gameLoop);
 }
