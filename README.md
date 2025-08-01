@@ -1,11 +1,28 @@
 # Shadow-Clone
 In this fast-paced ninja game, you're not just running, jumping, and dodging traps — you're racing against your own shadow clone.
 
-## How to Play the game 
-- Arrow Keys for **LEFT AND RIGHT**
-- Space bar Key for **JUMP** 
 
-## Features
+## 🕹️ How to Play:
+Arrow keys or A/D to move left/right
+
+Spacebar to jump
+
+Reach the yellow block before time runs out!
+
+Complete all levels to win!
+
+## ⏱️ Features:
+⬆️ Multiple levels with increasing difficulty
+
+🕒 30-second timer per level – race against time!
+
+🚫 Fall off or run out of time? Retry the level!
+
+🎮 Simple controls but challenging gameplay
+
+🖥️ Works on desktop (Chrome, Firefox, Edge)
+
+## Further Features
 
 -  **Platformer + Top-Down Hybrid**  
   Classic side-scrolling platform movement meets dodging and racing mechanics.
