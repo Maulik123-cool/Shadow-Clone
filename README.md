@@ -1,6 +1,10 @@
 # Shadow-Clone
 In this fast-paced ninja game, you're not just running, jumping, and dodging traps — you're racing against your own shadow clone.
 
+## How to Play the game 
+Arrow Keys for **LEFT AND RIGHT **
+Space bar Key for **JUMP** 
+
 ## Features
 
 -  **Platformer + Top-Down Hybrid**  
