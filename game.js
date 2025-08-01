@@ -1,219 +1,120 @@
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-const countdownDiv = document.getElementById('countdown');
-const levelSelect = document.getElementById('levelSelect');
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const timerEl = document.getElementById("timer");
+const levelEl = document.getElementById("level");
 
-let keys = {};
-document.addEventListener('keydown', e => keys[e.code] = true);
-document.addEventListener('keyup', e => keys[e.code] = false);
+let gridSize = 30;
+let player = { x: 1, y: 1 };
+let goal = { x: 18, y: 18 };
+let level = 0;
+let timer = 30;
+let timerInterval;
 
-const gravity = 0.5;
-const friction = 0.8;
+const levels = [
+  [
+    // 20x20 maze (0 = path, 1 = wall)
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,1,0,0,0,1,0,1,0,0,0,0,0,0,1],
+    [1,0,1,1,1,0,1,1,1,0,1,0,1,1,1,1,1,1,0,1],
+    [1,0,1,0,0,0,0,0,1,0,0,0,1,0,0,0,0,1,0,1],
+    [1,0,1,0,1,1,1,0,1,1,1,1,1,0,1,1,0,1,0,1],
+    [1,0,1,0,1,0,0,0,0,0,0,0,0,0,1,0,0,1,0,1],
+    [1,0,1,0,1,1,1,1,1,1,1,1,1,0,1,1,1,1,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,1],
+    [1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,1],
+    [1,0,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,1,0,1],
+    [1,0,1,0,0,0,0,0,1,0,0,0,0,0,0,1,0,1,0,1],
+    [1,0,1,0,1,1,1,0,1,1,1,1,1,1,0,1,0,1,0,1],
+    [1,0,1,0,1,0,0,0,0,0,0,0,0,1,0,1,0,1,0,1],
+    [1,0,1,0,1,1,1,1,1,1,1,1,0,1,0,1,0,1,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,1,0,1],
+    [1,1,1,1,1,1,1,1,1,1,0,1,0,1,1,1,1,1,0,1],
+    [1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1],
+    [1,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+  ]
+];
 
-let player, clone, platforms = [], goal = {};
-let pastRuns = [[], [], []];
-let currentLevel = 0;
-let gameRunning = false;
-let countdown = 3;
-let timeLeft = 30;
-let timerInterval = null;
+document.addEventListener("keydown", handleKey);
 
-class Player {
-  constructor(x, y, color) {
-    this.color = color;
-    this.x = x;
-    this.y = y;
-    this.reset(x, y);
-  }
+function startGame() {
+  level = 0;
+  resetLevel();
+  startTimer();
+  draw();
+}
 
-  reset(x, y) {
-    this.x = x;
-    this.y = y;
-    this.vx = 0;
-    this.vy = 0;
-    this.onGround = false;
-    this.record = [];
-    this.timer = 0;
-  }
-
-  update(input) {
-    if (input) {
-      if (keys['ArrowLeft']) this.vx -= 0.5;
-      if (keys['ArrowRight']) this.vx += 0.5;
-      if (keys['Space'] && this.onGround) {
-        this.vy = -10;
-        this.onGround = false;
+function resetLevel() {
+  const current = levels[level];
+  for (let y = 0; y < current.length; y++) {
+    for (let x = 0; x < current[y].length; x++) {
+      if (current[y][x] === 0) {
+        player = { x: 1, y: 1 };
+        goal = { x: 18, y: 18 };
+        return;
       }
     }
-
-    this.vy += gravity;
-    this.vx *= friction;
-
-    this.x += this.vx;
-    this.y += this.vy;
-
-    this.onGround = false;
-    for (let p of platforms) {
-      if (
-        this.x < p.x + p.w &&
-        this.x + 20 > p.x &&
-        this.y + 20 > p.y &&
-        this.y + 20 < p.y + p.h
-      ) {
-        this.y = p.y - 20;
-        this.vy = 0;
-        this.onGround = true;
-      }
-    }
-
-    if (input) {
-      this.record.push({ x: this.x, y: this.y });
-      this.timer++;
-    }
-  }
-
-  draw() {
-    ctx.fillStyle = this.color;
-    ctx.fillRect(this.x, this.y, 20, 20);
   }
 }
 
-class Platform {
-  constructor(x, y, w, h) {
-    this.x = x;
-    this.y = y;
-    this.w = w;
-    this.h = h;
-  }
-
-  draw() {
-    ctx.fillStyle = '#555';
-    ctx.fillRect(this.x, this.y, this.w, this.h);
-  }
-}
-
-function loadLevel(n) {
-  currentLevel = n;
-  platforms = [];
-
-  const levelData = [
-    [
-      new Platform(0, 480, 800, 20),
-      new Platform(150, 420, 100, 20),
-      new Platform(300, 360, 100, 20),
-      new Platform(450, 300, 100, 20),
-      new Platform(600, 240, 100, 20),
-    ],
-    [
-      new Platform(0, 480, 800, 20),
-      new Platform(200, 400, 100, 20),
-      new Platform(350, 340, 100, 20),
-      new Platform(500, 280, 100, 20),
-      new Platform(650, 220, 100, 20),
-    ],
-    [
-      new Platform(0, 480, 800, 20),
-      new Platform(100, 400, 100, 20),
-      new Platform(250, 320, 100, 20),
-      new Platform(400, 260, 100, 20),
-      new Platform(550, 200, 100, 20),
-      new Platform(700, 140, 100, 20),
-    ]
-  ];
-
-  platforms = levelData[n];
-  goal = { x: 750, y: 120, w: 30, h: 100 };
-
-  player = new Player(100, 100, 'cyan');
-  clone = new Player(100, 100, 'rgba(255,0,0,0.5)');
-
-  startCountdown();
-}
-
-function startLevel(n) {
-  levelSelect.style.display = 'none';
-  clearInterval(timerInterval);
-  loadLevel(n);
-}
-
-function startCountdown() {
-  countdown = 3;
-  countdownDiv.textContent = countdown;
-  const interval = setInterval(() => {
-    countdown--;
-    if (countdown === 0) {
-      countdownDiv.textContent = "GO!";
-      setTimeout(() => {
-        countdownDiv.textContent = "";
-        gameRunning = true;
-        timeLeft = 30;
-        timerInterval = setInterval(() => {
-          timeLeft--;
-          if (timeLeft <= 0) {
-            endGame(false);
-          }
-        }, 1000);
-      }, 500);
-      clearInterval(interval);
-    } else {
-      countdownDiv.textContent = countdown;
+function startTimer() {
+  timer = 30;
+  timerEl.textContent = timer;
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    timer--;
+    timerEl.textContent = timer;
+    if (timer <= 0) {
+      alert("⏱️ You ran out of time!");
+      resetLevel();
+      startTimer();
     }
   }, 1000);
 }
 
-function endGame(success) {
-  gameRunning = false;
-  clearInterval(timerInterval);
+function handleKey(e) {
+  const { x, y } = player;
+  let nx = x, ny = y;
 
-  if (success) {
-    if (
-      pastRuns[currentLevel].length === 0 ||
-      player.timer < pastRuns[currentLevel].length
-    ) {
-      pastRuns[currentLevel] = player.record.slice();
-      alert("🎉 Level Complete! Shadow updated.");
-    } else {
-      alert("Finished, but slower than your clone!");
-    }
-  } else {
-    alert("⏰ Time’s up! Try again.");
+  if (e.key === "ArrowUp") ny--;
+  if (e.key === "ArrowDown") ny++;
+  if (e.key === "ArrowLeft") nx--;
+  if (e.key === "ArrowRight") nx++;
+
+  if (levels[level][ny][nx] === 0) {
+    player = { x: nx, y: ny };
+    draw();
+    checkGoal();
   }
-
-  levelSelect.style.display = "block";
 }
 
-function gameLoop() {
+function checkGoal() {
+  if (player.x === goal.x && player.y === goal.y) {
+    clearInterval(timerInterval);
+    alert("🎉 You escaped the labyrinth!");
+    levelEl.textContent = level + 1;
+  }
+}
+
+function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const maze = levels[level];
 
-  for (let p of platforms) p.draw();
-  ctx.fillStyle = 'gold';
-  ctx.fillRect(goal.x, goal.y, goal.w, goal.h);
-
-  if (gameRunning) {
-    player.update(true);
-    if (pastRuns[currentLevel].length > 0 && pastRuns[currentLevel][player.timer]) {
-      const pos = pastRuns[currentLevel][player.timer];
-      clone.x = pos.x;
-      clone.y = pos.y;
-      clone.draw();
+  for (let y = 0; y < maze.length; y++) {
+    for (let x = 0; x < maze[y].length; x++) {
+      if (maze[y][x] === 1) {
+        ctx.fillStyle = "#555";
+        ctx.fillRect(x * gridSize, y * gridSize, gridSize, gridSize);
+      }
     }
   }
 
-  player.draw();
+  ctx.fillStyle = "lime";
+  ctx.fillRect(player.x * gridSize, player.y * gridSize, gridSize, gridSize);
 
-  if (
-    player.x > goal.x &&
-    player.y > goal.y &&
-    player.y < goal.y + goal.h
-  ) {
-    endGame(true);
-  }
-
-  ctx.fillStyle = 'white';
-  ctx.font = "16px sans-serif";
-  if (gameRunning) ctx.fillText("⏱️ Time Left: " + timeLeft + "s", 10, 20);
-
-  requestAnimationFrame(gameLoop);
+  ctx.fillStyle = "gold";
+  ctx.fillRect(goal.x * gridSize, goal.y * gridSize, gridSize, gridSize);
 }
 
-gameLoop();
+startGame();
