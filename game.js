@@ -97,7 +97,6 @@ function loadLevel(n) {
   platforms = [];
 
   const levelData = [
-    // Level 1 – easier spacing
     [
       new Platform(0, 480, 800, 20),
       new Platform(150, 420, 100, 20),
@@ -105,7 +104,6 @@ function loadLevel(n) {
       new Platform(450, 300, 100, 20),
       new Platform(600, 240, 100, 20),
     ],
-    // Level 2 – medium difficulty
     [
       new Platform(0, 480, 800, 20),
       new Platform(200, 400, 100, 20),
@@ -113,7 +111,6 @@ function loadLevel(n) {
       new Platform(500, 280, 100, 20),
       new Platform(650, 220, 100, 20),
     ],
-    // Level 3 – hardest but still beatable
     [
       new Platform(0, 480, 800, 20),
       new Platform(100, 400, 100, 20),
