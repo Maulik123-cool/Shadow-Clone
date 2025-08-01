@@ -1,5 +1,7 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+const countdownDiv = document.getElementById('countdown');
+const levelSelect = document.getElementById('levelSelect');
 
 let keys = {};
 document.addEventListener('keydown', e => keys[e.code] = true);
@@ -7,19 +9,24 @@ document.addEventListener('keyup', e => keys[e.code] = false);
 
 const gravity = 0.5;
 const friction = 0.8;
-let pastRun = [];
+
+let player, clone, platforms = [], goal = {};
+let pastRuns = [[], [], []]; // One memory per level
+let currentLevel = 0;
+let gameRunning = false;
+let countdown = 3;
 
 class Player {
   constructor(x, y, color) {
-    this.startX = x;
-    this.startY = y;
-    this.reset();
     this.color = color;
+    this.x = x;
+    this.y = y;
+    this.reset(x, y);
   }
 
-  reset() {
-    this.x = this.startX;
-    this.y = this.startY;
+  reset(x, y) {
+    this.x = x;
+    this.y = y;
     this.vx = 0;
     this.vy = 0;
     this.onGround = false;
@@ -27,7 +34,7 @@ class Player {
     this.timer = 0;
   }
 
-  update(input, platforms) {
+  update(input) {
     if (input) {
       if (keys['ArrowLeft']) this.vx -= 0.5;
       if (keys['ArrowRight']) this.vx += 0.5;
@@ -43,7 +50,6 @@ class Player {
     this.x += this.vx;
     this.y += this.vy;
 
-    // Collision with ground/platforms
     this.onGround = false;
     for (let p of platforms) {
       if (
@@ -84,55 +90,104 @@ class Platform {
   }
 }
 
-const player = new Player(100, 100, 'cyan');
-const clone = new Player(100, 100, 'rgba(255,0,0,0.5)');
-const platforms = [
-  new Platform(0, 480, 800, 20),
-  new Platform(150, 400, 100, 20),
-  new Platform(300, 330, 100, 20),
-  new Platform(500, 270, 100, 20),
-  new Platform(650, 200, 100, 20)
-];
+function loadLevel(n) {
+  currentLevel = n;
+  platforms = [];
 
-let playing = true;
+  // Basic levels - you can add more or edit these
+  const levelData = [
+    [
+      new Platform(0, 480, 800, 20),
+      new Platform(150, 400, 100, 20),
+      new Platform(300, 330, 100, 20),
+      new Platform(450, 270, 100, 20),
+      new Platform(600, 200, 100, 20),
+    ],
+    [
+      new Platform(0, 480, 800, 20),
+      new Platform(200, 420, 100, 20),
+      new Platform(350, 360, 100, 20),
+      new Platform(500, 300, 100, 20),
+      new Platform(650, 240, 100, 20),
+    ],
+    [
+      new Platform(0, 480, 800, 20),
+      new Platform(100, 420, 100, 20),
+      new Platform(250, 360, 100, 20),
+      new Platform(400, 300, 100, 20),
+      new Platform(550, 240, 100, 20),
+      new Platform(700, 180, 100, 20),
+    ]
+  ];
+
+  platforms = levelData[n];
+  goal = { x: 750, y: 180, w: 30, h: 100 };
+
+  player = new Player(100, 100, 'cyan');
+  clone = new Player(100, 100, 'rgba(255,0,0,0.5)');
+
+  startCountdown();
+}
+
+function startLevel(n) {
+  levelSelect.style.display = 'none';
+  loadLevel(n);
+}
+
+function startCountdown() {
+  countdown = 3;
+  countdownDiv.textContent = countdown;
+  const interval = setInterval(() => {
+    countdown--;
+    if (countdown === 0) {
+      countdownDiv.textContent = "GO!";
+      setTimeout(() => {
+        countdownDiv.textContent = "";
+        gameRunning = true;
+      }, 500);
+      clearInterval(interval);
+    } else {
+      countdownDiv.textContent = countdown;
+    }
+  }, 1000);
+}
 
 function gameLoop() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Draw platforms
   for (let p of platforms) p.draw();
+  ctx.fillStyle = 'gold';
+  ctx.fillRect(goal.x, goal.y, goal.w, goal.h);
 
-  // Update & draw player
-  if (playing) {
-    player.update(true, platforms);
-  } else {
-    player.reset();
-    clone.reset();
+  if (gameRunning) {
+    player.update(true);
+    if (pastRuns[currentLevel].length > 0 && pastRuns[currentLevel][player.timer]) {
+      const pos = pastRuns[currentLevel][player.timer];
+      clone.x = pos.x;
+      clone.y = pos.y;
+      clone.draw();
+    }
   }
+
   player.draw();
 
-  // Update & draw clone (from memory)
-  if (pastRun.length > 0 && pastRun[player.timer]) {
-    let pos = pastRun[player.timer];
-    clone.x = pos.x;
-    clone.y = pos.y;
-    clone.draw();
-  }
-
-  // Finish line
-  ctx.fillStyle = 'gold';
-  ctx.fillRect(750, 180, 30, 100);
-
-  if (player.x > 750 && player.y > 180 && player.y < 280) {
-    playing = false;
-    if (pastRun.length === 0 || player.timer < pastRun.length) {
-      pastRun = player.record.slice();
-      alert('🎉 New Best Time! Shadow clone updated.');
+  // Finish
+  if (
+    player.x > goal.x &&
+    player.y > goal.y &&
+    player.y < goal.y + goal.h
+  ) {
+    gameRunning = false;
+    if (
+      pastRuns[currentLevel].length === 0 ||
+      player.timer < pastRuns[currentLevel].length
+    ) {
+      pastRuns[currentLevel] = player.record.slice();
+      alert("🎉 Level Complete! Shadow updated.");
     } else {
-      alert('😎 You finished, but slower than your clone!');
+      alert("Finished, but slower than your clone!");
     }
-    player.reset();
-    setTimeout(() => { playing = true; }, 1000);
+    levelSelect.style.display = "block";
   }
 
   requestAnimationFrame(gameLoop);
