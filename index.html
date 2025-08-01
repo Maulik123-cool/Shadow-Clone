@@ -1,23 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Platformer x Runner</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <title>Shadow Clone Rush</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>🏃‍♂️ Platformer x Shadow Runner</h1>
+  <canvas id="gameCanvas" width="800" height="500"></canvas>
+
+  <div id="countdown"></div>
+
   <div id="levelSelect">
-    <h2>Select Level:</h2>
     <button onclick="startLevel(0)">Level 1</button>
     <button onclick="startLevel(1)">Level 2</button>
     <button onclick="startLevel(2)">Level 3</button>
   </div>
 
-  <div id="countdown"></div>
-  <canvas id="gameCanvas" width="800" height="500"></canvas>
-
-  <script src="main.js"></script>
+  <script src="game.js"></script>
 </body>
 </html>
